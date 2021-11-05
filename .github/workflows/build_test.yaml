@@ -10,44 +10,39 @@ on:
 
 
 jobs:
-  build:
-    name: Install airtigrs
+  build-test:
+    name: Build and test
     runs-on: ubuntu-latest
+    env:
+      AIRFLOW__CORE__DAGS_FOLDER: ${{ format('{0}/airtigrs/dags', github.workspace) }}
+      DM_CONFIG: ${{ format('{0}/airtigrs/tests/common/test_config.yaml', github.workspace) }}
+      DM_SYSTEM: 'test'
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Cache pip environment
+        uses: actions/cache@v2
         with:
-          path: airtigrs
-
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install package
         run: |
-          # Lock on a specific commit until version is released on PyPI
-          pip install git+https://github.com/TIGRLab/datman.git@a0cd1ffd443d72a80b0b8dd4bcaa10c0307c4b4f
-          cd airtigrs
+          pip install -r requirements.txt
           pip install -q -e .[buildtest]
-
-  test:
-    needs: build
-    runs-on: ubuntu-latest
-    env:
-      AIRFLOW_HOME: github.workspace
-
-    steps:
-      - name: Build DAGs
-        run: |
-          ls $AIRFLOW_HOME
-          find $AIRFLOW_HOME/airtigrs/dags -type f -name "*.py" | grep -v utils | xargs -I {} python {}
 
       - name: Run unit tests
         run: |
-          cd $AIRFLOW_HOME
+          cd airtigrs
           py.test tests/ -v
 
 
