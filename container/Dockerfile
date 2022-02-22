@@ -7,6 +7,9 @@ USER root
 RUN apt-get update && apt-get install --no-install-recommends -y \
 	wget git gettext
 
+COPY ./container/docker-entrypoint.sh /
+COPY . /home/airflow/air-tigrs
+
 ## Taken from the Datman Dockerfile
 RUN mkdir /.ssh && \
 	ln -s /.ssh /home/airflow/.ssh && \
@@ -16,7 +19,8 @@ RUN mkdir /.ssh && \
 
 ## Set up volumes
 RUN mkdir -p /sources/{airflow,config,archive,dev} && \
-	chown -R airflow:0 /sources
+	chown -R airflow:0 /sources && \
+        chown -R airflow:0 /home/airflow
 
 USER airflow
 WORKDIR /home/airflow
@@ -32,9 +36,7 @@ ENV PATH="${PATH}:/home/airflow/datman/bin"
 ENV DM_CONFIG=/config/main_config.yml
 ENV DM_SYSTEM=docker
 
-COPY . ./air-tigrs
 RUN	cd air-tigrs \
 	&& pip install --use-deprecated=legacy-resolver --user .[buildtest]
 
-COPY ./container/docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
